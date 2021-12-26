@@ -344,17 +344,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2a60c7ce501c71e03a9c9c0d35b861413ae925bd979cc7a4e30d060069aaac8d"
 
 [[package]]
-name = "nananiji-tg-bot"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "chrono-tz",
- "isahc",
- "json",
- "urlencoding",
-]
-
-[[package]]
 name = "num-integer"
 version = "0.1.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -703,6 +692,17 @@ checksum = "97d095ae15e245a057c8e8451bab9b3ee1e1f68e9ba2b4fbc18d0ac5237835f2"
 dependencies = [
  "pin-project",
  "tracing",
+]
+
+[[package]]
+name = "twitter-telegram-forwarder"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "chrono-tz",
+ "isahc",
+ "json",
+ "urlencoding",
 ]
 
 [[package]]

@@ -1,5 +1,5 @@
 [package]
-name = "nananiji-tg-bot"
+name = "twitter-telegram-forwarder"
 version = "0.1.0"
 edition = "2021"
 
