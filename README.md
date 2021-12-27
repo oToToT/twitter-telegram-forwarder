@@ -1,6 +1,8 @@
 # twitter-telegram-forwarder
 A simple twitter -> telegram forwarder written in Rust.
 
+Example channel: https://t.me/nanabunnonijyuuni_tweet
+
 ## How to use it?
 1. `git clone https://github.com/oToToT/twitter-telegram-forwarder`
 2. `cd twitter-telegram-forwarder`
