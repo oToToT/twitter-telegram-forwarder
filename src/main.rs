@@ -1,11 +1,11 @@
-use ::std::fs;
 use chrono::DateTime;
 use chrono_tz::Asia::Taipei;
 use isahc::{prelude::*, Request};
 use json;
+use std::fs;
 use urlencoding::encode;
 
-fn main() -> Result<(), isahc::error::Error> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config_str = fs::read_to_string("config.json").expect("config file not exists");
     let config = json::parse(config_str.as_str()).expect("invalid config format");
     let mut saved_config = config.clone();
@@ -41,7 +41,7 @@ fn main() -> Result<(), isahc::error::Error> {
             .header("Authorization", twitter_auth.clone())
             .body(())?
             .send()?;
-        let tweets_result = json::parse(twitter_resp.text()?.as_str()).unwrap();
+        let tweets_result = json::parse(twitter_resp.text()?.as_str())?;
         if tweets_result["meta"]["result_count"] == 0 {
             continue;
         }
@@ -52,7 +52,7 @@ fn main() -> Result<(), isahc::error::Error> {
                 .as_str()
                 .expect("invalid tweet response")
                 .parse::<u64>()
-                .unwrap()
+                .expect("invalid tweet id")
         });
 
         for tweet in tweets {
@@ -61,8 +61,7 @@ fn main() -> Result<(), isahc::error::Error> {
             let created_at = tweet["created_at"]
                 .as_str()
                 .expect("invalid tweet response");
-            let created = DateTime::parse_from_rfc3339(created_at)
-                .unwrap()
+            let created = DateTime::parse_from_rfc3339(created_at)?
                 .with_timezone(&Taipei)
                 .to_rfc2822();
 
@@ -73,7 +72,7 @@ fn main() -> Result<(), isahc::error::Error> {
             let telegram_api_endpoint = format!("{}{}", telegram_api, encode(msg.as_str()));
 
             let mut tg_resp = isahc::get(telegram_api_endpoint)?;
-            let tg_result = json::parse(tg_resp.text()?.as_str()).unwrap();
+            let tg_result = json::parse(tg_resp.text()?.as_str())?;
 
             if !tg_result["ok"]
                 .as_bool()
@@ -83,7 +82,7 @@ fn main() -> Result<(), isahc::error::Error> {
             }
 
             saved_config["accounts"][i]["since_id"] = tweet_id.into();
-            fs::write("config.json", saved_config.dump()).unwrap();
+            fs::write("config.json", saved_config.dump())?;
         }
     }
 
