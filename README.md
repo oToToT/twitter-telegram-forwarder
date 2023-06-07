@@ -12,7 +12,7 @@ Example channel: https://t.me/nanabunnonijyuuni_tweet
 
 ## How to setup config.json?
 1. Rename `config.json.example` to `config.json`
-2. Fil in the twitter [application Bearer token](https://developer.twitter.com/en/docs/authentication/oauth-2-0/application-only)
+2. Fill in the twitter [application Bearer token](https://developer.twitter.com/en/docs/authentication/oauth-2-0/application-only)
 3. Fill in the telegram [bot token](https://core.telegram.org/bots)
 4. Fill in the telegram channel/userid in `"telegram-channel"` field
 5. Fill in accounts you want to follow
