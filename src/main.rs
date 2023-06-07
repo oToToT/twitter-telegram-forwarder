@@ -1,6 +1,7 @@
 use chrono::DateTime;
 use chrono_tz::Asia::Taipei;
 use json;
+use std::{thread, time};
 
 mod telegram;
 mod twitter;
@@ -30,26 +31,34 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .expect("account username not fonud");
         let name = match account["name"].as_str() {
             Some(s) => s.to_owned(),
-            None => tw.get_user_info(&username)?["name"]
-                .as_str()
-                .expect("invalid twitter response")
-                .to_owned(),
+            None => {
+                let name = tw.get_user_info(&username)?["name"]
+                    .as_str()
+                    .expect("invalid twitter response")
+                    .to_owned();
+                saved_config["accounts"][i]["name"] = name.clone().into();
+                std::fs::write("config.json", saved_config.dump())?;
+                name
+            }
         };
         let id = match account["id"].as_str() {
             Some(s) => s.to_owned(),
-            None => tw.get_user_info(&username)?["id"]
-                .as_str()
-                .expect("invalid twitter response")
-                .to_owned(),
+            None => {
+                let id = tw.get_user_info(&username)?["id"]
+                    .as_str()
+                    .expect("invalid twitter response")
+                    .to_owned();
+                saved_config["accounts"][i]["id"] = id.clone().into();
+                std::fs::write("config.json", saved_config.dump())?;
+                id
+            }
         };
-        let since_id = account["since_id"]
-            .as_str()
-            .expect("account since_id not found");
 
-        saved_config["accounts"][i]["name"] = name.clone().into();
-        saved_config["accounts"][i]["id"] = id.clone().into();
+        let tweets = match account["since_id"].as_str() {
+            Some(since_id) => tw.get_tweets_since(&id, since_id)?,
+            None => tw.get_all_tweets(&id)?,
+        };
 
-        let tweets = tw.get_tweets_since(&id, since_id)?;
         let mut tweets: Vec<_> = tweets.members().collect();
         tweets.sort_by_key(|tweet| {
             tweet["id"]

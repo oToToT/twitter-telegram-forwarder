@@ -34,6 +34,38 @@ impl<'a> Twitter<'a> {
             Ok(result["data"].clone())
         }
     }
+    pub fn get_all_tweets(&self, id: &str) -> Result<json::JsonValue, Box<dyn std::error::Error>> {
+        let mut tweets = json::JsonValue::new_array();
+        let mut pagination_token: Option<String> = None;
+        loop {
+            let mut endpoint = format!(
+                "https://api.twitter.com/2/users/{}/tweets?max_results=100&tweet.fields=created_at",
+                id
+            );
+            if let Some(pagination_token) = pagination_token {
+                endpoint.push_str(format!("&pagination_token={}", pagination_token).as_str());
+            }
+            let result = self.fetch(&endpoint)?.text()?;
+            let result = json::parse(result.as_str())?;
+
+            if result["meta"]["result_count"] == 0 {
+                break;
+            } else {
+                for tweet in result["data"].members() {
+                    tweets.push(tweet.clone())?;
+                }
+                match result["meta"]["next_token"].as_str() {
+                    Some(s) => {
+                        pagination_token = Some(s.into());
+                    }
+                    None => {
+                        break;
+                    }
+                };
+            }
+        }
+        Ok(tweets)
+    }
 
     fn fetch(&self, endpoint: &str) -> Result<isahc::Response<isahc::Body>, isahc::error::Error> {
         Request::get(endpoint)
