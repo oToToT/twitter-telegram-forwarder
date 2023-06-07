@@ -1,19 +1,18 @@
 use chrono::DateTime;
 use chrono_tz::Asia::Taipei;
-use isahc::{prelude::*, Request};
 use json;
-use std::fs;
-use urlencoding::encode;
+
+mod telegram;
+mod twitter;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let config_str = fs::read_to_string("config.json").expect("config file not exists");
+    let config_str = std::fs::read_to_string("config.json").expect("config file not exists");
     let config = json::parse(config_str.as_str()).expect("invalid config format");
     let mut saved_config = config.clone();
 
     let twitter_token = config["twitter-token"]
         .as_str()
         .expect("twitter token not found");
-    let twitter_auth = format!("Bearer {}", twitter_token);
 
     let telegram_token = config["telegram-token"]
         .as_str()
@@ -21,32 +20,37 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let telegram_channel_id = config["telegram-channel"]
         .as_str()
         .expect("telegram channel id not found");
-    let telegram_api = format!(
-        "https://api.telegram.org/bot{}/sendMessage?chat_id={}&text=",
-        telegram_token, telegram_channel_id
-    );
+
+    let tw = twitter::Twitter::new(twitter_token);
+    let tg = telegram::Telegram::new(telegram_token);
 
     for (i, account) in config["accounts"].members().enumerate() {
-        let name = account["name"].as_str().expect("account name not fonud");
         let username = account["username"]
             .as_str()
             .expect("account username not fonud");
-        let id = account["id"].as_str().expect("account id not found");
+        let name = match account["name"].as_str() {
+            Some(s) => s.to_owned(),
+            None => tw.get_user_info(&username)?["name"]
+                .as_str()
+                .expect("invalid twitter response")
+                .to_owned(),
+        };
+        let id = match account["id"].as_str() {
+            Some(s) => s.to_owned(),
+            None => tw.get_user_info(&username)?["id"]
+                .as_str()
+                .expect("invalid twitter response")
+                .to_owned(),
+        };
         let since_id = account["since_id"]
             .as_str()
             .expect("account since_id not found");
 
-        let twitter_api_endpoint = format!("https://api.twitter.com/2/users/{}/tweets?max_results=100&tweet.fields=created_at&since_id={}", id, since_id);
-        let mut twitter_resp = Request::get(twitter_api_endpoint)
-            .header("Authorization", twitter_auth.clone())
-            .body(())?
-            .send()?;
-        let tweets_result = json::parse(twitter_resp.text()?.as_str())?;
-        if tweets_result["meta"]["result_count"] == 0 {
-            continue;
-        }
+        saved_config["accounts"][i]["name"] = name.clone().into();
+        saved_config["accounts"][i]["id"] = id.clone().into();
 
-        let mut tweets: Vec<_> = tweets_result["data"].members().collect();
+        let tweets = tw.get_tweets_since(&id, since_id)?;
+        let mut tweets: Vec<_> = tweets.members().collect();
         tweets.sort_by_key(|tweet| {
             tweet["id"]
                 .as_str()
@@ -69,20 +73,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let url = format!("https://twitter.com/{}/status/{}", username, tweet_id);
 
             let msg = format!("{}:\n\n{}\n\n{}\n{}", name, tweet_content, created, url);
-            let telegram_api_endpoint = format!("{}{}", telegram_api, encode(msg.as_str()));
-
-            let mut tg_resp = isahc::get(telegram_api_endpoint)?;
-            let tg_result = json::parse(tg_resp.text()?.as_str())?;
-
-            if !tg_result["ok"]
-                .as_bool()
-                .expect("invalid telegram response")
-            {
-                panic!("telegram request failed");
-            }
+            tg.send(telegram_channel_id, &msg)?;
 
             saved_config["accounts"][i]["since_id"] = tweet_id.into();
-            fs::write("config.json", saved_config.dump())?;
+            std::fs::write("config.json", saved_config.dump())?;
         }
     }
 
