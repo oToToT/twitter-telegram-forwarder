@@ -86,6 +86,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             saved_config["accounts"][i]["since_id"] = tweet_id.into();
             std::fs::write("config.json", saved_config.dump())?;
+
+            thread::sleep(time::Duration::from_secs(3)); // Follow Telegram's rate limit
         }
     }
 
