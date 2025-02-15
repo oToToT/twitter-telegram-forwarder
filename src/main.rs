@@ -79,7 +79,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .to_rfc2822();
 
             let tweet_id = tweet["id"].as_str().expect("invalid tweet response");
-            let url = format!("https://twitter.com/{}/status/{}", username, tweet_id);
+            let url = format!("https://fxtwitter.com/{}/status/{}", username, tweet_id);
 
             let msg = format!("{}:\n\n{}\n\n{}\n{}", name, tweet_content, created, url);
             tg.send(telegram_channel_id, &msg)?;
