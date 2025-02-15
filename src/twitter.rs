@@ -1,5 +1,5 @@
-use isahc::{prelude::*, Request};
 use json;
+use reqwest;
 
 pub struct Twitter<'a> {
     token: &'a str,
@@ -67,10 +67,14 @@ impl<'a> Twitter<'a> {
         Ok(tweets)
     }
 
-    fn fetch(&self, endpoint: &str) -> Result<isahc::Response<isahc::Body>, isahc::error::Error> {
-        Request::get(endpoint)
-            .header("Authorization", format!("Bearer {}", self.token))
-            .body(())?
+    fn fetch(&self, endpoint: &str) -> reqwest::Result<reqwest::blocking::Response> {
+        let client = reqwest::blocking::Client::new();
+        client
+            .get(endpoint)
+            .header(
+                reqwest::header::AUTHORIZATION,
+                format!("Bearer {}", self.token),
+            )
             .send()
     }
 }

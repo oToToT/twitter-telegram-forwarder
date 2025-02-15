@@ -1,5 +1,5 @@
-use isahc::prelude::*;
 use json;
+use reqwest;
 use urlencoding;
 
 pub struct Telegram<'a> {
@@ -18,7 +18,7 @@ impl<'a> Telegram<'a> {
             urlencoding::encode(message)
         );
 
-        let result = json::parse(isahc::get(endpoint)?.text()?.as_str())?;
+        let result = json::parse(&reqwest::blocking::get(endpoint)?.text()?)?;
 
         if result["ok"].as_bool().ok_or("invalid telegram response")? {
             Ok(())
